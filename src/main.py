@@ -4,7 +4,12 @@ import pyperclip
 import blur_192
 import blur_18
 import smoothie
+
 from constants import LOGO
+
+
+# todo:
+# convert smoothie's custom weight namespace to blur's
 
 
 def split_config(path):
@@ -13,13 +18,23 @@ def split_config(path):
     return config_contents.split("\n")
 
 
-def config_type(config_lines):
-    match config_lines[0]:
-        case "[blur v1.9]":
-            return "blur_1.92"
-        case "- blur":
-            return "blur_1.8"
-    return "smoothie"
+def config_type(config_lines, path):
+    if "interpolation program (svp/rife/rife-ncnn)" in config_lines:
+        print("Blur v1.8 config detected")
+        return "blur_1.8"
+    elif "interpolation block size" in config_lines:
+        print("Blur v1.92 config detected")
+        return "blur_1.92"
+    else:
+        if path.endswith(".ini"):
+            print("Smoothie config detected")
+            return "smoothie"
+        else:
+            print(
+                """Your config doesn't match any support blur config and isn't in the .ini container (Smoothie).
+                Ensure that your input path is a support config format. (Blur v1.8, Blur v1.92, or Smoothie)"""
+            )
+            return "invalid"
 
 
 def parse_config(config_lines):
@@ -66,7 +81,6 @@ while True:
                 config.read(config_path)
                 pyperclip.copy(smoothie.choose_program(config))
                 print("Result copied to clipboard.")
-
     elif operation in ["2", "vegas", "vegas weights", "calculate vegas weights"]:
         match program:
             case "blur_1.8":

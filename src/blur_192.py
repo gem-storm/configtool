@@ -1,6 +1,4 @@
 def weighting(config):
-    weighting = config["blur weighting"]
-
     if config["interpolate"] == "true" and "x" not in config["interpolated fps"]:
         blurframes = int(
             int(config["interpolated fps"]) / int(config["blur output fps"])
@@ -9,7 +7,12 @@ def weighting(config):
             vegas = "[1," + "2," * (blurframes - 1) + "1]"
             if weighting == vegas:
                 return "vegas"
+    weighting = config["blur weighting"]
+    std_dev = {config["blur weighting gaussian std dev"]}
+    bound = {config["blur weighting bound"]}
     match weighting:
+        case "equal":
+            return "equal"
         case "pyramid":
             if config["blur weighting triangle reverse"] == "true":
                 return "descending"
@@ -17,10 +20,22 @@ def weighting(config):
         case "pyramid_sym":
             return "pyramid"
         case "gaussian_sym":
-            std_dev = f"std_dev = {config['blur weighting gaussian std dev']}"
-            bound = f"bound = {config['blur weighting bound']}"
-            return f"gaussian_sym; {std_dev}; {bound}"
-    return weighting
+            return f"gaussian_sym; std_dev = {std_dev}; bound = {bound}"
+        case "gaussian":
+            return f"custom; func = exp(-(x ** 2) / (2 * std_dev = {std_dev} ** 2))"
+        case _:  # custom
+            print(
+                "Custom weight functions are not fully supported, do not expect them to work after conversion."
+            )
+            if weighting[0] == "[" and weighting[-1] == "]":
+                return weighting
+            else:
+                print("Custom weighting is very beta, do NOT expect accurate results.")
+                custom = (
+                    f"custom; func = {weighting}; std_dev = {std_dev}; bound = {bound}"
+                )
+                return custom
+            # this is very wip
 
 
 def deduplicate(config):
@@ -162,12 +177,12 @@ def choose_program(config):
     choice = input(
         """
 Convert to:
-    (1) Blur 1.8
+    (1) Blur v1.8
     (2) Smoothie
 """
     ).lower()
 
-    if choice in ["1", "(1)", "blur", "1.8", "blur 1.8"]:
+    if choice in ["1", "(1)", "blur", "1.8", "blur v1.8"]:
         return make_config(config)
     if choice in ["2", "(2)", "smoothie"]:
         return make_recipe(config)

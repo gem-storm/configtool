@@ -9,7 +9,11 @@ def weighting(config):
             vegas = "[1," + "2," * (blurframes - 1) + "1]"
             if weighting == vegas:
                 return "vegas"
+    std_dev = {config["blur weighting gaussian std dev"]}
+    bound = {config["blur weighting bound"]}
     match weighting:
+        case "equal":
+            return "equal"
         case "pyramid":
             if config["blur weighting triangle reverse"] == "true":
                 return "descending"
@@ -17,10 +21,14 @@ def weighting(config):
         case "pyramid_sym":
             return "pyramid"
         case "gaussian_sym":
-            std_dev = f"std_dev = {config['blur weighting gaussian std dev']}"
-            bound = f"bound = {config['blur weighting bound']}"
-            return f"gaussian_sym; {std_dev}; {bound}"
-    return weighting
+            return f"gaussian_sym; std_dev = {std_dev}; bound = {bound}"
+        case "gaussian":
+            return f"custom; func = exp(-(x ** 2) / (2 * std_dev = {std_dev} ** 2))"
+        case _:  # custom
+            print(
+                "Custom weight functions are not fully supported, do not expect them to work after conversion."
+            )
+            return weighting
 
 
 def deduplicate(config):
@@ -167,12 +175,12 @@ def choose_program(config):
     choice = input(
         """
 Convert to:
-    (1) Blur 1.92
+    (1) Blur v1.92
     (2) Smoothie
 """
     ).lower()
 
-    if choice in ["1", "(1)", "blur", "1.92", "blur 1.92"]:
+    if choice in ["1", "(1)", "blur", "v1.92", "blur v1.92"]:
         return make_config(config)
     if choice in ["2", "(2)", "smoothie"]:
         return make_recipe(config)

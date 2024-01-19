@@ -77,7 +77,8 @@ def blending_intensity(config):
 
 
 def convert_weighting(config):
-    weighting = config.get("frame blending", "weighting").split(";")[0]
+    raw_weighting = config.get("frame blending", "weighting")
+    weighting = raw_weighting.split(";")[0]
     if weighting == "vegas":
         if category_enabled(config, category="interpolation") == "true" and isinstance(
             interp_fps(config), int
@@ -89,10 +90,24 @@ def convert_weighting(config):
                 return "equal"
             return "[1," + "2," * (blurframes - 1) + "1]"
         return "equal"
-    if weighting in ["descending", "gaussian"]:
+    if weighting in ["ascending", "descending"]:
         return "pyramid"
     if weighting == "pyramid":
         return "pyramid_sym"
+    if weighting == "gaussian":
+        apex = blending_apex(config)
+        std_dev = blending_std_dev(config)
+        return f"1 / ((m := __import__('math')).sqrt(2 * m.pi) * {std_dev}) * m.exp(-((x - {apex}) / {std_dev}) ** 2 / 2)"
+    if weighting == "custom":
+        print(
+            "Custom weight functions are not fully supported, do not expect them to work after conversion."
+        )
+        stripped_custom = raw_weighting.replace(" ", "").removeprefix("custom;func=")
+        converted_custom = []
+        for value in stripped_custom.split(";").strip():
+            if "bound" not in value and "std_dev" not in value:
+                converted_custom.append(value)
+        return " ".join(converted_custom)
     return weighting
 
 
@@ -107,7 +122,7 @@ def blending_std_dev(config):
         weighting_split = config.get("frame blending", "weighting").split(";")
         for value in weighting_split:
             if "std_dev" in value:
-                return value.split("=")[1].removeprefix(" ")
+                return value.split("=")[1].strip()
     return "1"
 
 
@@ -116,7 +131,16 @@ def blending_bound(config):
         weighting_split = config.get("frame blending", "weighting").split(";")
         for value in weighting_split:
             if "bound" in value:
-                return value.split("=")[1].removeprefix(" ")
+                return value.split("=")[1].strip()
+    return "[0,2]"
+
+
+def blending_apex(config):
+    if config.has_option("frame blending", "weighting"):
+        weighting_split = config.get("frame blending", "weighting").split(";")
+        for value in weighting_split:
+            if "apex" in value:
+                return value.split("=")[1].strip()
     return "[0,2]"
 
 
@@ -267,13 +291,13 @@ def choose_program(config):
     blur_version = input(
         """
 Convert to:
-    (1) Blur 1.8
-    (2) Blur 1.92
+    (1) Blur v1.8
+    (2) Blur v1.92
 """
     ).lower()
-    if blur_version in ["1", "(1)", "1.8", "blur 1.8"]:
+    if blur_version in ["1", "(1)", "1.8", "blur v1.8"]:
         return make_18_config(config)
-    if blur_version in ["2", "(2)", "1.92", "blur 1.92"]:
+    if blur_version in ["2", "(2)", "1.92", "blur v1.92"]:
         return make_192_config(config)
     print("Not recognized as an option!")
     return choose_program(config)
