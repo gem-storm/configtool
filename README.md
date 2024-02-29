@@ -27,7 +27,7 @@ download the [latest release](https://github.com/gem-storm/configtool/releases/l
 ## usage
 run `main.py` to start the program and paste the path to your config/recipe when prompted. the rest should be self-explanatory.
 
-## cli args
+## cli args (v0.3+)
 `--help`
 shows basic help message and exits.
 
