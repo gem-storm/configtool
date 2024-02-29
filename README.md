@@ -41,7 +41,7 @@ output config format ('blur_1.8', 'blur_1.92', or 'smoothie').
 shortens the output config.
 
 `--vegas`
-calculates and applies vegas weights (unless multiple operations are specified).
+calculates and applies vegas weights (copies result if multiple operations are specified).
 
 `--verbose`
 prints extra information for debugging.
