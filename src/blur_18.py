@@ -38,6 +38,25 @@ def deduplicate(config):
     return "0.0"
 
 
+def convert(config, output):
+    if output == "input":
+        output = input(
+            """convert to:
+(1) blur_1.92
+(2) smoothie
+"""
+        )
+        if output == "1":
+            output = "blur_1.92"
+        elif output == "2":
+            output = "smoothie"
+    match output:
+        case "blur_1.92":
+            return make_config(config)
+        case "smoothie":
+            return make_recipe(config)
+
+
 def make_config(config):
     return f"""[blur v1.9]
 - blur
@@ -169,24 +188,6 @@ enabled: false
 masking: false
 factor: 2x
 model: rife-v4.6"""
-
-
-def choose_program(config):
-    choice = input(
-        """
-Convert to:
-    (1) Blur v1.92
-    (2) Smoothie
-"""
-    ).lower()
-
-    if choice in ["1", "(1)", "blur", "v1.92", "blur v1.92"]:
-        return make_config(config)
-    if choice in ["2", "(2)", "smoothie"]:
-        return make_recipe(config)
-
-    print("Not an option!")
-    return choose_program(config)
 
 
 def calculate_vegas(config):

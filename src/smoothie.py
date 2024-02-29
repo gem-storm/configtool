@@ -2,23 +2,36 @@ from constants import YES, ENC_PRESETS
 import configparser
 
 
+def has_section(config, category):
+    if category in config:
+        return True
+    return False
+
+
+def has_key(config, category, key):
+    if has_section(config, category):
+        if key in config[category]:
+            return True
+    return False
+
+
+def basic_value(config, category, key, default):
+    if has_key(config, category, key):
+        return config[category][key]
+    return default
+
+
 def bool_value(config, category, key):
-    if config.has_option(category, key):
-        if config.get(category, key) in YES:
+    if has_key(config, category, key):
+        if config[category][key] in YES:
             return "true"
     return "false"
 
 
-def float_value(config, category, key):
-    if config.has_option(category, key):
-        return config.get(category, key)
-    return "1.0"
-
-
 def category_enabled(config, category):
-    if config.has_section(category):
-        if config.has_option(category, "enabled"):
-            if config.get(category, "enabled") in YES:
+    if has_section(config, category):
+        if has_key(config, category, "enabled"):
+            if config[category]["enabled"] in YES:
                 return "true"
             return "false"
         return "true"
@@ -33,58 +46,22 @@ def category_masking(config, category):
 
 
 def interp_fps(config):
-    if config.has_option("interpolation", "fps"):
-        if "x" not in config.get("interpolation", "fps"):
-            return int(config.get("interpolation", "fps"))
-        return config.get("interpolation", "fps")
+    if has_key(config, "interpolation", "fps"):
+        if "x" not in config["interpolation"]["fps"]:
+            return int(config["interpolation"]["fps"])
+        return config["interpolation"]["fps"]
     return 1920
 
 
-def interp_speed(config):
-    if config.has_option("interpolation", "speed"):
-        return config.get("interpolation", "speed")
-    return "medium"
-
-
-def interp_tuning(config):
-    if config.has_option("interpolation", "tuning"):
-        return config.get("interpolation", "tuning")
-    return "weak"
-
-
-def interp_algorithm(config):
-    if config.has_option("interpolation", "algorithm"):
-        return config.get("interpolation", "algorithm")
-    return "23"
-
-
-def interp_area(config):
-    if config.has_option("interpolation", "area"):
-        return config.get("interpolation", "area")
-    return "0"
-
-
-def blending_fps(config):
-    if config.has_option("frame blending", "fps"):
-        return int(config.get("frame blending", "fps"))
-    return 60
-
-
-def blending_intensity(config):
-    if config.has_option("frame blending", "intensity"):
-        return float(config.get("frame blending", "intensity"))
-    return 1.0
-
-
 def convert_weighting(config):
-    raw_weighting = config.get("frame blending", "weighting")
+    raw_weighting = config["frame blending"]["weighting"]
     weighting = raw_weighting.split(";")[0]
     if weighting == "vegas":
         if category_enabled(config, category="interpolation") == "true" and isinstance(
             interp_fps(config), int
         ):
             blurframes = int(
-                interp_fps(config) / blending_fps(config) * blending_intensity(config)
+                interp_fps(config) / int(basic_value(config, "frame blending", "fps", 60)) * float(basic_value(config, "frame blending", "intensity", 1.0))
             )
             if blurframes % 2 == 1:
                 return "equal"
@@ -112,14 +89,15 @@ def convert_weighting(config):
 
 
 def blending_weighting(config):
-    if config.has_option("frame blending", "weighting"):
+    if has_key(config, "frame blending", "weighting"):
         return convert_weighting(config)
     return "equal"
 
 
+
 def blending_std_dev(config):
-    if config.has_option("frame blending", "weighting"):
-        weighting_split = config.get("frame blending", "weighting").split(";")
+    if has_key(config, "frame blending", "weighting"):
+        weighting_split = config["frame blending"]["weighting"].split(";")
         for value in weighting_split:
             if "std_dev" in value:
                 return value.split("=")[1].strip()
@@ -127,8 +105,8 @@ def blending_std_dev(config):
 
 
 def blending_bound(config):
-    if config.has_option("frame blending", "weighting"):
-        weighting_split = config.get("frame blending", "weighting").split(";")
+    if has_key(config, "frame blending", "weighting"):
+        weighting_split = config["frame blending"]["weighting"].split(";")
         for value in weighting_split:
             if "bound" in value:
                 return value.split("=")[1].strip()
@@ -136,8 +114,8 @@ def blending_bound(config):
 
 
 def blending_apex(config):
-    if config.has_option("frame blending", "weighting"):
-        weighting_split = config.get("frame blending", "weighting").split(";")
+    if has_key(config, "frame blending", "weighting"):
+        weighting_split = config["frame blending"]["weighting"].split(";")
         for value in weighting_split:
             if "apex" in value:
                 return value.split("=")[1].strip()
@@ -145,8 +123,8 @@ def blending_apex(config):
 
 
 def reverse_weights(config):
-    if config.has_option("frame blending", "weighting"):
-        if config.get("frame blending", "weighting") == "descending":
+    if has_key(config, "frame blending", "weighting"):
+        if config["frame blending"]["weighting"] == "descending":
             return "true"
     return "false"
 
@@ -155,8 +133,8 @@ def output_encoding_args(config):
     enc_arg_presets = configparser.ConfigParser()
     enc_arg_presets.read_string(ENC_PRESETS)
 
-    if config.has_option("output", "enc args"):
-        input_enc_args = config.get("output", "enc args")
+    if has_key(config, "output", "enc args"):
+        input_enc_args = config["output"]["enc args"]
         split_args = input_enc_args.split(" ")
         sections = enc_arg_presets.sections()
         parsed_args = []
@@ -176,30 +154,49 @@ def output_encoding_args(config):
 
 
 def output_container(config):
-    if config.has_option("output", "container"):
-        return config.get("output", "container").removeprefix(".").lower()
+    if has_key(config, "output", "container"):
+        return config["output"]["container"].removeprefix(".").lower()
     return "mp4"
 
 
 def misc_deduplicate(config):
-    if config.has_option("miscellaneous", "dedup threshold"):
-        if float(config.get("miscellaneous", "dedup threshold")) > 0.0:
+    if has_key(config, "miscellaneous", "dedup threshold"):
+        if float(config["miscellaneous"]["dedup threshold"]) > 0.0:
             return "true"
     return "false"
 
 
 def color(config, key):
-    if config.has_option("color grading", "enabled"):
-        if config.get("color grading", "enabled") in YES:
-            float_value(config, category="color grading", key=key)
+    if has_key(config, "color grading", "enabled"):
+        if config["color grading"]["enabled"] in YES:
+            return basic_value(config, "color grading", key, 1.0)
     return "1.0"
+
+
+def convert(config, output):
+    if output == "input":
+        output = input(
+            """convert to:
+(1) blur_1.8
+(2) blur_1.92
+"""
+        )
+        if output == "1":
+            output = "blur_1.8"
+        elif output == "2":
+            output = "blur_1.92"
+    match output:
+        case "blur_1.8":
+            return make_18_config(config)
+        case "blur_1.92":
+            return make_192_config(config)
 
 
 def make_18_config(config):
     return f"""- blur
 blur: {category_enabled(config, category="frame blending")}
-blur amount: {blending_intensity(config)}
-blur output fps: {blending_fps(config)}
+blur amount: {basic_value(config, "frame blending", "intensity", "1.0")}
+blur output fps: {basic_value(config, "frame blending", "fps", "60")}
 blur weighting: {blending_weighting(config)}
 
 - interpolation
@@ -234,17 +231,17 @@ blur weighting bound: {blending_bound(config)}
 
 - advanced interpolation
 interpolation program (svp/rife/rife-ncnn): svp
-interpolation speed: {interp_speed(config)}
-interpolation tuning: {interp_tuning(config)}
-interpolation algorithm: {interp_algorithm(config)}"""
+interpolation speed: {basic_value(config, "interpolation", "speed", "medium")}
+interpolation tuning: {basic_value(config, "interpolation", "tuning", "weak")}
+interpolation algorithm: {basic_value(config, "interpolation", "algorithm", "23")}"""
 
 
 def make_192_config(config):
     return f"""[blur v1.9]
 - blur
 blur: {category_enabled(config, category="frame blending")}
-blur amount: {blending_intensity(config)}
-blur output fps: {blending_fps(config)}
+blur amount: {basic_value(config, "frame blending", "intensity", "1.0")}
+blur output fps: {basic_value(config, "frame blending", "fps", "60")}
 blur weighting: {blending_weighting(config)}
 
 - interpolation
@@ -280,74 +277,58 @@ blur weighting triangle reverse: {reverse_weights(config)}
 blur weighting bound: {blending_bound(config)}
 
 - advanced interpolation
-interpolation preset: {interp_tuning(config)}
-interpolation algorithm: {interp_algorithm(config)}
+interpolation preset: {basic_value(config, "interpolation", "tuning", "weak")}
+interpolation algorithm: {basic_value(config, "interpolation", "algorithm", "23")}
 interpolation block size: 8
-interpolation speed: {interp_speed(config)}
-interpolation mask area: {interp_area(config)}"""
-
-
-def choose_program(config):
-    blur_version = input(
-        """
-Convert to:
-    (1) Blur v1.8
-    (2) Blur v1.92
-"""
-    ).lower()
-    if blur_version in ["1", "(1)", "1.8", "blur v1.8"]:
-        return make_18_config(config)
-    if blur_version in ["2", "(2)", "1.92", "blur v1.92"]:
-        return make_192_config(config)
-    print("Not recognized as an option!")
-    return choose_program(config)
+interpolation speed: {basic_value(config, "interpolation", "speed", "medium")}
+interpolation mask area: {basic_value(config, "interpolation", "area", "0")}"""
 
 
 def shorten(config):
     shortened_config = []
-    if category_enabled(config, category="interpolation") == "true":
+    if category_enabled(config, "interpolation") == "true":
         shortened_config.append("[interpolation]")
-        if category_masking(config, category="interpolation"):
+        if category_masking(config, "interpolation"):
             shortened_config.append("masking: yes")
         shortened_config.append(f"fps: {interp_fps(config)}")
-        shortened_config.append(f"speed: {interp_speed(config)}")
-        shortened_config.append(f"tuning: {interp_tuning(config)}")
-        shortened_config.append(f"algorithm: {interp_algorithm(config)}")
-        area = interp_area(config)
+        shortened_config.append(f"speed: {basic_value(config, "interpolation", "speed", "medium")}")
+        shortened_config.append(f"tuning: {basic_value(config, "interpolation", "tuning", "weak")}")
+        shortened_config.append(f"algorithm: {basic_value(config, "interpolation", "algorithm", "23")}")
+        area = basic_value(config, "interpolation", "area", "0")
         if area != "0":
             shortened_config.append(f"area: {area}")
 
-    if category_enabled(config, category="frame blending") == "true":
+    if category_enabled(config, "frame blending") == "true":
         shortened_config.append("\n[frame blending]")
-        shortened_config.append(f"fps: {blending_fps(config)}")
-        shortened_config.append(f"intensity: {blending_intensity(config)}")
+        shortened_config.append(f"fps: {basic_value(config, "frame blending", "fps", "60")}")
+        shortened_config.append(f"intensity: {basic_value(config, "frame blending", "intensity", "1.0")}")
         shortened_config.append(f"weighting: {blending_weighting(config)}")
-        bright_blend = bool_value(config, category="frame blending", key="bright blend")
+        bright_blend = bool_value(config, "frame blending", key="bright blend")
         if bright_blend in YES:
             shortened_config.append(f"bright blend: {bright_blend}")
 
-    if category_enabled(config, category="flowblur") == "true":
+    if category_enabled(config, "flowblur") == "true":
         shortened_config.append("\n[flowblur]")
-        if category_masking(config, category="flowblur"):
+        if category_masking(config, "flowblur"):
             shortened_config.append("masking: yes")
-        if config.has_option("flowblur", "amount"):
-            shortened_config.append(f"amount: {config.get('flowblur', 'amount')}")
-        if config.has_option("flowblur", "do blending"):
+        if has_key(config, "flowblur", "amount"):
+            shortened_config.append(f"amount: {config['flowblur']['amount']}")
+        if has_key(config, "flowblur", "do blending"):
             shortened_config.append(
-                f"do blending: {config.get('flowblur', 'do blending')}"
+                f"do blending: {config['flowblur']['do blending']}"
             )
 
-    if category_enabled(config, category="artifact masking") == "true":
+    if category_enabled(config, "artifact masking") == "true":
         shortened_config.append("\n[artifact masking]")
-        if bool_value(config, category="artifact masking", key="feathering") == "true":
+        if bool_value(config, "artifact masking", key="feathering") == "true":
             shortened_config.append("feathering: yes")
-        if config.has_option("artifact masking", "file name"):
+        if has_key(config, "artifact masking", "file name"):
             shortened_config.append(
-                f"file name: {config.get('artifact masking', 'file name')}"
+                f"file name: {config['artifact masking']['file name']}"
             )
 
-    in_time = float(float_value(config, category="timescale", key="in"))
-    out_time = float(float_value(config, category="timescale", key="out"))
+    in_time = float(basic_value(config, "timescale", "in", "1.0"))
+    out_time = float(basic_value(config, "timescale", "in", "1.0"))
     if in_time != 1.0 or out_time != 1.0:
         shortened_config.append("\n[timescale]")
         if in_time != 1.0:
@@ -355,12 +336,93 @@ def shorten(config):
         if out_time != 1.0:
             shortened_config.append(f"out: {in_time}")
 
-    if category_enabled(config, category="pre-interp") == "true":
+    if category_enabled(config, "pre-interp") == "true":
         shortened_config.append("\n[pre-interp]")
-        if category_masking(config, category="pre-interp"):
+        if category_masking(config, "pre-interp"):
             shortened_config.append("masking: yes")
-        shortened_config.append(f"factor: {config.get('pre-interp', 'factor')}")
+        shortened_config.append(f"factor: {config['pre-interp']['factor']}")
     return "\n".join(shortened_config)
 
 
 # this is a mess
+
+
+def calculate_vegas(config):
+    return f"""[interpolation]
+enabled: {category_enabled(config, category="interpolation")}
+masking: {bool_value(config, "interpolation", "masking")}
+fps: {interp_fps(config)}
+speed: {basic_value(config, "interpolation", "speed", "medium")}
+tuning: {basic_value(config, "interpolation", "tuning", "weak")}
+algorithm: {basic_value(config, "interpolation", "algorithm", "23")}
+use gpu: {bool_value(config, "interpolation", "use gpu")}
+area: {basic_value(config, "interpolation", "area", "0")}
+
+[frame blending]
+enabled: {category_enabled(config, "frame blending")}
+fps: {basic_value(config, "frame blending", "fps", "60")}
+intensity: {basic_value(config, "frame blending", "intensity", "1.0")}
+weighting: vegas
+bright blend: {bool_value(config, "frame blending", "bright blend")}
+
+[flowblur]
+enabled: {category_enabled(config, "flowblur")}
+masking: {bool_value(config, "flowblur", "masking")}
+amount: {basic_value(config, "flowblur", "amount", "125")}
+do blending: {basic_value(config, "flowblur", "do blending", "after")}
+
+[output]
+process: {basic_value(config, "output", "process", "ffmpeg")}
+enc args: {basic_value(config, "output", "enc args", "H264 CPU")}
+file format: {basic_value(config, "output", "file format", r"%FILENAME% ~ %FRUIT%")}
+container: {basic_value(config, "output", "container", ".MP4")}
+
+[preview window]
+enabled: {category_enabled(config, "preview window")}
+process: {basic_value(config, "preview window", "process", "ffplay")}
+output args: {basic_value(config, "preview window", "output args", "-f yuv4mpegpipe -")}
+
+[artifact masking]
+enabled: {category_enabled(config, "artifact masking")}
+feathering: {bool_value(config, "artifact masking", "feathering")}
+folder path: {basic_value(config, "artifact masking", "folder path", "")}
+file name: {basic_value(config, "artifact masking", "file name", "")}
+
+[miscellaneous]
+play ding: {bool_value(config, "miscellaneous", "play ding")}
+always verbose: {bool_value(config, "miscellaneous", "always verbose")}
+dedup threshold: {basic_value(config, "miscellaneous", "dedup threshold", "0.0")}
+global output folder: {basic_value(config, "miscellaneous", "global output folder", "")}
+source indexing: {bool_value(config, "miscellaneous", "source indexing")}
+ffmpeg options: {basic_value(config, "miscellaneous", "ffmpeg options", "-loglevel error -i - -hide_banner -stats -stats_period 0.15")}
+ffplay options: {basic_value(config, "miscellaneous", "ffplay options", "-loglevel quiet -i - -autoexit -window_title smoothie.preview")}
+
+[console]
+stay on top: {bool_value(config, "console", "stay on top")}
+borderless: {bool_value(config, "console", "borderless")}
+position: {basic_value(config, "console", "position", "top left")}
+width: {basic_value(config, "console", "width", "900")}
+height: {basic_value(config, "console", "height", "350")}
+
+[timescale]
+in: {basic_value(config, "timescale", "in", "1.0")}
+out: {basic_value(config, "timescale", "out", "1.0")}
+
+[color grading]
+enabled: {category_enabled(config, "color grading")}
+brightness: {basic_value(config, "color grading", "brightness", "1.0")}
+saturation: {basic_value(config, "color grading", "saturation", "1.0")}
+contrast: {basic_value(config, "color grading", "contrast", "1.0")}
+hue: {basic_value(config, "color grading", "hue", "0")}
+coring: {bool_value(config, "color grading", "coring")}
+
+[lut]
+enabled: {category_enabled(config, "lut",)}
+path: {basic_value(config, "lut", "path", "")}
+opacity: {basic_value(config, "lut", "opacity", "0.2")}
+
+[pre-interp]
+enabled: {category_enabled(config, "pre-interp")}
+masking: {bool_value(config, "pre-interp", "masking")}
+factor: {basic_value(config, "pre-interp", "factor", "3x")}
+model: {basic_value(config, "pre-interp", "model", "rife-v4.4")}"""

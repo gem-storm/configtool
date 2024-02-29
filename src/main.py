@@ -1,3 +1,4 @@
+from arguments import args
 import configparser
 import pyperclip
 
@@ -8,117 +9,124 @@ import smoothie
 from constants import LOGO
 
 
-# todo:
-# convert smoothie's custom weight namespace to blur's
+def verbose(string):
+    if args.verbose:
+        print(string)
 
 
-def split_config(path):
-    with open(path, "r") as file:
-        config_contents = file.read()
-    return config_contents.split("\n")
+def parse_config(path):
+    if path.endswith(".cfg"):
+        verbose("opening config...")
+        with open(path, "r") as file:
+            config_contents = file.read()
+        verbose("parsing config...")
+        config_lines = config_contents.split("\n")
+        verbose("parsing config...")
+        dict_config = {}
+        for line in config_lines:
+            if ": " in line:
+                split_line = line.split(": ", 1)
+                dict_config[split_line[0]] = split_line[1]
+        return dict_config
+    verbose("opening recipe...")
+    config = configparser.RawConfigParser()
+    config.read(path)
+    verbose("parsing recipe...")
+    dict = {}
+    for section in config.sections():
+        dict[section] = {}
+        for item in config.items(section):
+            dict[section][item[0]] = item[1]
+    return dict
 
 
-def config_type(config_lines, path):
-    if "interpolation program (svp/rife/rife-ncnn)" in config_lines:
-        print("Blur v1.8 config detected")
-        return "blur_1.8"
-    elif "interpolation block size" in config_lines:
-        print("Blur v1.92 config detected")
+def config_type(path):
+    config = parse_config(path)
+    verbose("detecting config type...")
+    if path.endswith(".cfg"):
+        if "interpolation program (svp/rife/rife-ncnn)" in config:
+            verbose("blur 1.8 config detected")
+            return "blur_1.8"
+        verbose("blur 1.92 config detected")
         return "blur_1.92"
-    else:
-        if path.endswith(".ini"):
-            print("Smoothie config detected")
-            return "smoothie"
-        else:
-            print(
-                """Your config doesn't match any support blur config and isn't in the .ini container (Smoothie).
-                Ensure that your input path is a support config format. (Blur v1.8, Blur v1.92, or Smoothie)"""
-            )
-            return "invalid"
+    verbose("smoothie recipe detected")
+    return "smoothie"
 
 
-def parse_config(config_lines):
-    dict_config = {}
-    for line in config_lines:
-        if ": " in line:
-            split_line = line.split(": ", 1)
-            dict_config[split_line[0]] = split_line[1]
-    return dict_config
+def convert(config, path, output):
+    match config_type(path):
+        case "blur_1.8":
+            return blur_18.convert(config, output)
+        case "blur_1.92":
+            return blur_192.convert(config, output)
+        case "smoothie":
+            return smoothie.convert(config, output)
 
 
-print(LOGO)
-config_path = input("Paste the input config/recipe's path here: ").replace('"', "")
-config_lines = split_config(config_path)
+def shorten(config, path):
+    match config_type(path):
+        case "blur_1.8":
+            return blur_18.shorten(config)
+        case "blur_1.92":
+            return blur_192.shorten(config)
+        case "smoothie":
+            return smoothie.shorten(config)
 
-while True:
+
+def vegas(config, path):
+    match config_type(path):
+        case "blur_1.8":
+            return blur_18.calculate_vegas(config)
+        case "blur_1.92":
+            return blur_192.calculate_vegas(config)
+        case "smoothie":
+            return smoothie.calculate_vegas(config)
+
+
+if args.input:
+    verbose("input argument received")
+    config_path = args.input.replace('"')
+else:
+    print(LOGO)
+    config_path = input("paste the path to your config/recipe here: ").replace('"', "")
+
+config = parse_config(config_path)
+
+if not args.shorten and not args.vegas and not args.output:
     operation = input(
-        """
-    Do you want to:
-        (1) Convert
-        (2) Calculate VEGAS Weights
-        (3) Shorten
-        (4) Use a different input config
-        (5) Exit
-    """
-    ).lower()
-
-    program = config_type(config_lines)
-
-    if operation in ["1", "convert"]:
-        match program:
-            case "blur_1.8":
-                config = parse_config(config_lines)
-                pyperclip.copy(blur_18.choose_program(config))
-                print("Result copied to clipboard.")
-
-            case "blur_1.92":
-                config = parse_config(config_lines)
-                pyperclip.copy(blur_192.choose_program(config))
-                print("Result copied to clipboard.")
-
-            case "smoothie":
-                config = configparser.ConfigParser()
-                config.read(config_path)
-                pyperclip.copy(smoothie.choose_program(config))
-                print("Result copied to clipboard.")
-    elif operation in ["2", "vegas", "vegas weights", "calculate vegas weights"]:
-        match program:
-            case "blur_1.8":
-                config = parse_config(config_lines)
-                with open(config_path, "w") as file:
-                    file.write(blur_18.calculate_vegas(config))
-                print("Weights have been successfully applied.")
-
-            case "blur_1.92":
-                config = parse_config(config_lines)
-                with open(config_path, "w") as file:
-                    file.write(blur_192.calculate_vegas(config))
-                print("Weights have been successfully applied.")
-
-            case "smoothie":
-                print(
-                    "dawg smoothie has vegas weights built in...\n(it's just 'weighting: vegas')"
-                )
-
-    elif operation in ["3", "shorten"]:
-        match program:
-            case "blur_1.8":
-                config = parse_config(config_lines)
-                pyperclip.copy(blur_18.shorten(config))
-                print("Result copied to clipboard.")
-            case "blur_1.92":
-                config = parse_config(config_lines)
-                pyperclip.copy(blur_192.shorten(config))
-                print("Result copied to clipboard.")
-            case "smoothie":
-                config = configparser.ConfigParser()
-                config.read(config_path)
-                pyperclip.copy(smoothie.shorten(config))
-                print("Result copied to clipboard.")
-
-    elif operation in ["4", "config", "use a different input config"]:
-        config_path = input("Paste the new path here: ").replace('"', "")
-    elif operation in ["5", "exit"]:
-        exit()
+        """would you like to:
+(1) convert
+(2) shorten
+(3) calculate vegas weights
+"""
+    )
+    match operation:
+        case "1" | "convert":
+            verbose("copying...")
+            pyperclip.copy(convert(config, config_path, "input"))
+        case "2" | "shorten":
+            verbose("copying...")
+            pyperclip.copy(shorten(config))
+        case "3" | "vegas":
+            verbose("applying weights...")
+            with open(config_path, "w") as file:
+                file.write(vegas(config))
+    input("done! (press enter to exit)")
+else:
+    if args.shorten:
+        verbose("shorten argument received")
+        if args.output and args.output != config_type(config_path):
+            verbose("output (convert) argument received")
+            if args.vegas:
+                verbose("vegas argument received")
+                config = vegas(config)
+            config = convert(config, config_path, args.output)
+        config = shorten(config)
+    if not args.output and not args.shorten:
+        verbose("applying weights...")
+        with open(config, "w") as file:
+            file.write(vegas(config))
     else:
-        print("Not recognized as an option")
+        verbose("copying...")
+        pyperclip.copy(config)
+    input("done! (press enter to exit)")
