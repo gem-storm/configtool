@@ -83,50 +83,53 @@ def vegas(config, path):
             return smoothie.calculate_vegas(config)
 
 
-if args.input:
-    verbose("input argument received")
-    config_path = args.input.replace('"')
-else:
-    print(LOGO)
-    config_path = input("paste the path to your config/recipe here: ").replace('"', "")
-
-config = parse_config(config_path)
-
-if not args.shorten and not args.vegas and not args.output:
-    operation = input(
-        """would you like to:
-(1) convert
-(2) shorten
-(3) calculate vegas weights
-"""
-    )
-    match operation:
-        case "1" | "convert":
-            verbose("copying...")
-            pyperclip.copy(convert(config, config_path, "input"))
-        case "2" | "shorten":
-            verbose("copying...")
-            pyperclip.copy(shorten(config))
-        case "3" | "vegas":
-            verbose("applying weights...")
-            with open(config_path, "w") as file:
-                file.write(vegas(config))
-    input("done! (press enter to exit)")
-else:
-    if args.shorten:
-        verbose("shorten argument received")
-        if args.output and args.output != config_type(config_path):
-            verbose("output (convert) argument received")
-            if args.vegas:
-                verbose("vegas argument received")
-                config = vegas(config)
-            config = convert(config, config_path, args.output)
-        config = shorten(config)
-    if not args.output and not args.shorten:
-        verbose("applying weights...")
-        with open(config, "w") as file:
-            file.write(vegas(config))
+if __name__ == "__main__":
+    if args.input:
+        verbose("input argument received")
+        config_path = args.input.replace('"')
     else:
-        verbose("copying...")
-        pyperclip.copy(config)
-    input("done! (press enter to exit)")
+        print(LOGO)
+        config_path = input("paste the path to your config/recipe here: ").replace(
+            '"', ""
+        )
+
+    config = parse_config(config_path)
+
+    if not args.shorten and not args.vegas and not args.output:
+        operation = input(
+            """would you like to:
+    (1) convert
+    (2) shorten
+    (3) calculate vegas weights
+    """
+        )
+        match operation:
+            case "1" | "convert":
+                verbose("copying...")
+                pyperclip.copy(convert(config, config_path, "input"))
+            case "2" | "shorten":
+                verbose("copying...")
+                pyperclip.copy(shorten(config))
+            case "3" | "vegas":
+                verbose("applying weights...")
+                with open(config_path, "w") as file:
+                    file.write(vegas(config))
+        input("done! (press enter to exit)")
+    else:
+        if args.shorten:
+            verbose("shorten argument received")
+            if args.output and args.output != config_type(config_path):
+                verbose("output (convert) argument received")
+                if args.vegas:
+                    verbose("vegas argument received")
+                    config = vegas(config)
+                config = convert(config, config_path, args.output)
+            config = shorten(config)
+        if not args.output and not args.shorten:
+            verbose("applying weights...")
+            with open(config, "w") as file:
+                file.write(vegas(config))
+        else:
+            verbose("copying...")
+            pyperclip.copy(config)
+        input("done! (press enter to exit)")

@@ -61,7 +61,9 @@ def convert_weighting(config):
             interp_fps(config), int
         ):
             blurframes = int(
-                interp_fps(config) / int(basic_value(config, "frame blending", "fps", 60)) * float(basic_value(config, "frame blending", "intensity", 1.0))
+                interp_fps(config)
+                / int(basic_value(config, "frame blending", "fps", 60))
+                * float(basic_value(config, "frame blending", "intensity", 1.0))
             )
             if blurframes % 2 == 1:
                 return "equal"
@@ -92,7 +94,6 @@ def blending_weighting(config):
     if has_key(config, "frame blending", "weighting"):
         return convert_weighting(config)
     return "equal"
-
 
 
 def blending_std_dev(config):
@@ -291,17 +292,27 @@ def shorten(config):
         if category_masking(config, "interpolation"):
             shortened_config.append("masking: yes")
         shortened_config.append(f"fps: {interp_fps(config)}")
-        shortened_config.append(f"speed: {basic_value(config, "interpolation", "speed", "medium")}")
-        shortened_config.append(f"tuning: {basic_value(config, "interpolation", "tuning", "weak")}")
-        shortened_config.append(f"algorithm: {basic_value(config, "interpolation", "algorithm", "23")}")
+        shortened_config.append(
+            f"speed: {basic_value(config, 'interpolation', 'speed', 'medium')}"
+        )
+        shortened_config.append(
+            f"tuning: {basic_value(config, 'interpolation', 'tuning', 'weak')}"
+        )
+        shortened_config.append(
+            f"algorithm: {basic_value(config, 'interpolation', 'algorithm', '23')}"
+        )
         area = basic_value(config, "interpolation", "area", "0")
         if area != "0":
             shortened_config.append(f"area: {area}")
 
     if category_enabled(config, "frame blending") == "true":
         shortened_config.append("\n[frame blending]")
-        shortened_config.append(f"fps: {basic_value(config, "frame blending", "fps", "60")}")
-        shortened_config.append(f"intensity: {basic_value(config, "frame blending", "intensity", "1.0")}")
+        shortened_config.append(
+            f"fps: {basic_value(config, 'frame blending', 'fps', '60')}"
+        )
+        shortened_config.append(
+            f"intensity: {basic_value(config, 'frame blending', 'intensity', '1.0')}"
+        )
         shortened_config.append(f"weighting: {blending_weighting(config)}")
         bright_blend = bool_value(config, "frame blending", key="bright blend")
         if bright_blend in YES:
@@ -314,9 +325,7 @@ def shorten(config):
         if has_key(config, "flowblur", "amount"):
             shortened_config.append(f"amount: {config['flowblur']['amount']}")
         if has_key(config, "flowblur", "do blending"):
-            shortened_config.append(
-                f"do blending: {config['flowblur']['do blending']}"
-            )
+            shortened_config.append(f"do blending: {config['flowblur']['do blending']}")
 
     if category_enabled(config, "artifact masking") == "true":
         shortened_config.append("\n[artifact masking]")
