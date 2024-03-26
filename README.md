@@ -16,7 +16,7 @@ In the future, [teres](https://github.com/animafps/teres) *may* be supported.
 ## installation
 
 ### dependencies
-- python (at least `v3.12`)
+- python
 - [pyperclip](https://pypi.org/project/pyperclip/)
 
 ### installation
