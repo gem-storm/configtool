@@ -1,4 +1,7 @@
 def weighting(config):
+    weighting = config["blur weighting"]
+    std_dev = config["blur weighting gaussian std dev"]
+    bound = config["blur weighting bound"]
     if config["interpolate"] == "true" and "x" not in config["interpolated fps"]:
         blurframes = int(
             int(config["interpolated fps"]) / int(config["blur output fps"])
@@ -7,9 +10,6 @@ def weighting(config):
             vegas = "[1," + "2," * (blurframes - 1) + "1]"
             if weighting == vegas:
                 return "vegas"
-    weighting = config["blur weighting"]
-    std_dev = {config["blur weighting gaussian std dev"]}
-    bound = {config["blur weighting bound"]}
     match weighting:
         case "equal":
             return "equal"
@@ -138,7 +138,7 @@ do blending: after
 [output]
 process: ffmpeg
 enc args: {config["custom ffmpeg filters"]}
-file format: %FILENAME%
+file format: %FILENAME% ~ %FRUIT%
 container: .{config["video container"]}
 
 [preview window]
@@ -192,7 +192,7 @@ factor: 2x
 model: rife-v4.6"""
 
 
-def calculate_vegas(config):
+def calculate_vegas(config, fps=0):
     match config["interpolate"]:
         case "true":
             blurframes = int(
@@ -201,11 +201,13 @@ def calculate_vegas(config):
                 * float(config["blur amount"])
             )
         case "false":
-            blurframes = int(
-                int(input("Interpolation is disabled, what's the input video's fps?: "))
-                / int(config["blur output fps"])
-                * int(config["blur amount"])
-            )
+            if fps == 0:
+                blurframes = 1
+                # so it returns equal
+            else:
+                blurframes = (
+                    fps / int(config["blur output fps"]) * int(config["blur amount"])
+                )
     if blurframes % 2 == 0:
         weighting = "[1," + "2," * (blurframes - 1) + "1]"
     else:

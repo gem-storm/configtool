@@ -190,7 +190,7 @@ factor: 2x
 model: rife-v4.6"""
 
 
-def calculate_vegas(config):
+def calculate_vegas(config, fps=0):
     match config["interpolate"]:
         case "true":
             blurframes = int(
@@ -199,11 +199,13 @@ def calculate_vegas(config):
                 * float(config["blur amount"])
             )
         case "false":
-            blurframes = int(
-                int(input("Interpolation is disabled, what's the input video's fps?: "))
-                / int(config["blur output fps"])
-                * int(config["blur amount"])
-            )
+            if fps == 0:
+                blurframes = 1
+                # so it returns equal
+            else:
+                blurframes = (
+                    fps / int(config["blur output fps"]) * int(config["blur amount"])
+                )
     if blurframes % 2 == 0:
         weighting = "[1," + "2," * (blurframes - 1) + "1]"
     else:

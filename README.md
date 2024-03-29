@@ -24,9 +24,13 @@ In the future, [teres](https://github.com/animafps/teres) *may* be supported.
 download the [latest release](https://github.com/gem-storm/configtool/releases/latest) and unzip it.
 
 ## usage
-run `main.py` to start the program and paste the path to your config/recipe when prompted. the rest should be self-explanatory.
+2 ways of running configtool:
+1. gui: you can run `gui.py` to use the (new) gui version of configtool! (only supports converting rn)
+2. cli: run `main.py` to get the (old) cli version of configtool. (has all the other features + cli args)
 
-## cli args (v0.3+)
+
+## cli args
+(for `main.py`)
 `--help`
 shows basic help message and exits.
 

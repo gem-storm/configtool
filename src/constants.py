@@ -40,3 +40,5 @@ UTVIDEO: -c:v utvideo
 """
 
 YES = ["on", "True", "true", "yes", "y", "1", "yeah", "yea", "yep", "sure", "positive"]
+
+VERSION = 1.0
