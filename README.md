@@ -31,6 +31,7 @@ download the [latest release](https://github.com/gem-storm/configtool/releases/l
 
 ## cli args
 (for `main.py`)
+
 `--help`
 shows basic help message and exits.
 
