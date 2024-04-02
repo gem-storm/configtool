@@ -25,8 +25,8 @@ download the [latest release](https://github.com/gem-storm/configtool/releases/l
 
 ## usage
 2 ways of running configtool:
-1. gui: you can run `gui.py` to use the (new) gui version of configtool! (only supports converting rn)
-2. cli: run `main.py` to get the (old) cli version of configtool. (has all the other features + cli args)
+1. gui: you can run `gui.py` to use the (new) gui version of configtool!
+2. cli: run `main.py` to get the (old) cli version of configtool.
 
 
 ## cli args
